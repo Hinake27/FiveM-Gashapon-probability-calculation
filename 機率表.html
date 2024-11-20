@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道具機率計算器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            padding: 20px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #eee;
+        }
+        .rarity-section {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+        .common { background-color: #f3f4f6; }
+        .rare { background-color: #dbeafe; }
+        .epic { background-color: #e9d5ff; }
+        .unique { background-color: #fee2e2; }
+        .legendary { background-color: #fef3c7; }
+        .flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .result-box {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        .probability-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+        pre {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const App = () => {
+            const [itemCounts, setItemCounts] = React.useState({
+                common: 0,
+                rare: 0,
+                epic: 0,
+                unique: 0,
+                legendary: 0
+            });
+
+            const [probabilities, setProbabilities] = React.useState({
+                common: [],
+                rare: [],
+                epic: [],
+                unique: [],
+                legendary: []
+            });
+
+            const [simulationCount, setSimulationCount] = React.useState(10);
+            const [simulationResults, setSimulationResults] = React.useState({});
+
+            const rarities = {
+                common: 'D常見',
+                rare: 'C稀有',
+                epic: 'B史詩',
+                unique: 'A唯一',
+                legendary: 'S傳奇'
+            };
+
+            const colors = {
+                common: '#242424',
+                rare: 'blue',
+                epic: 'purple',
+                unique: 'red',
+                legendary: 'gold'
+            };
+
+            React.useEffect(() => {
+                calculateProbabilities();
+            }, [itemCounts]);
+
+            const calculateProbabilities = () => {
+                const totalItems = Object.values(itemCounts).reduce((a, b) => a + b, 0);
+                
+                if (totalItems === 0) {
+                    setProbabilities({
+                        common: [],
+                        rare: [],
+                        epic: [],
+                        unique: [],
+                        legendary: []
+                    });
+                    return;
+                }
+
+                const newProbabilities = {};
+                Object.keys(itemCounts).forEach(rarity => {
+                    const count = itemCounts[rarity];
+                    const individualProb = (1 / totalItems) * 100;
+                    newProbabilities[rarity] = Array(count).fill(individualProb);
+                });
+
+                setProbabilities(newProbabilities);
+            };
+
+            const simulateDraw = () => {
+                const totalItems = Object.values(itemCounts).reduce((a, b) => a + b, 0);
+                
+                if (totalItems === 0) {
+                    alert('請先設定道具數量！');
+                    return;
+                }
+
+                const itemPool = [];
+                Object.entries(itemCounts).forEach(([rarity, count]) => {
+                    for (let i = 0; i < count; i++) {
+                        itemPool.push(rarity);
+                    }
+                });
+
+                const results = Object.keys(rarities).reduce((acc, rarity) => {
+                    acc[rarity] = 0;
+                    return acc;
+                }, {});
+
+                for (let i = 0; i < simulationCount; i++) {
+                    const randomIndex = Math.floor(Math.random() * itemPool.length);
+                    const drawnItem = itemPool[randomIndex];
+                    results[drawnItem]++;
+                }
+
+                setSimulationResults(results);
+            };
+
+            const calculateTotalProbabilityForRarity = (rarity) => {
+                return probabilities[rarity].reduce((a, b) => a + b, 0);
+            };
+
+            return (
+                <div className="container">
+                    <div className="card">
+                        <div className="title">道具機率計算器</div>
+                        <div>
+                            {Object.entries(rarities).map(([key, label]) => (
+                                <div key={key} className={`rarity-section ${key}`}>
+                                    <div className="flex">
+                                        <div className="input-group">
+                                            <label>{label}道具數量：</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={itemCounts[key]}
+                                                onChange={(e) => {
+                                                    const newValue = parseInt(e.target.value) || 0;
+                                                    setItemCounts(prev => ({
+                                                        ...prev,
+                                                        [key]: newValue >= 0 ? newValue : 0
+                                                    }));
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <div>總機率：{calculateTotalProbabilityForRarity(key).toFixed(1)}%</div>
+                                        </div>
+                                    </div>
+                                    {probabilities[key].length > 0 && (
+                                        <div className="result-box">
+                                            <div>個別道具機率：</div>
+                                            {probabilities[key].map((prob, index) => (
+                                                <div key={index} className="probability-item">
+                                                    {label} #{index + 1}: {prob.toFixed(1)}%
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="card">
+                        <div className="title">機率表</div>
+                        <pre>
+                            {Object.entries(rarities).map(([key, label], index) => {
+                                const prob = calculateTotalProbabilityForRarity(key);
+                                if (prob > 0) {
+                                    return `[${index + 1}] = { name = "${label}", rate = ${prob.toFixed(1)}, color = "${colors[key]}", discord_color = ${Math.floor(Math.random() * 9999999)} },\n`;
+                                }
+                                return '';
+                            }).join('')}
+                        </pre>
+                    </div>
+
+                    <div className="card">
+                        <div className="title">模擬抽取</div>
+                        <div className="flex" style={{marginBottom: '20px'}}>
+                            <div className="input-group">
+                                <label>抽取次數：</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={simulationCount}
+                                    onChange={(e) => setSimulationCount(parseInt(e.target.value) || 1)}
+                                />
+                            </div>
+                            <button onClick={simulateDraw}>開始抽取</button>
+                        </div>
+
+                        {Object.keys(simulationResults).length > 0 && (
+                            <div className="result-box">
+                                <div style={{marginBottom: '10px'}}>抽取結果統計：</div>
+                                {Object.entries(simulationResults).map(([rarity, count]) => (
+                                    count > 0 && (
+                                        <div key={rarity} className={`probability-item ${rarity}`}>
+                                            <div className="flex">
+                                                <span>{rarities[rarity]}：</span>
+                                                <span>{count} 次</span>
+                                                <span>
+                                                    ({((count / simulationCount) * 100).toFixed(1)}%)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
